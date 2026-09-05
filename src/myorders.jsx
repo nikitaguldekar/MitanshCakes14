@@ -21,7 +21,7 @@ function MyOrders() {
       }
 
       try {
-        const response = await fetch("http://localhost:5000/api/orders");
+        const response = await fetch("https://reliable-light-production-157c.up.railway.app/api/orders");
 
         if (!response.ok) {
           throw new Error(`Backend returned ${response.status}`);

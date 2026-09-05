@@ -597,7 +597,7 @@ function App() {
   const [dbProducts, setDbProducts] = useState([]);
 
   useEffect(() => {
-    fetch("http://localhost:5000/api/products")
+    fetch("https://reliable-light-production-157c.up.railway.app/api/products")
       .then((response) => response.json())
       .then((data) => {
         if (data.success && Array.isArray(data.products)) {

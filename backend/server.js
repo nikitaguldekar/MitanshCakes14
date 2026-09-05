@@ -3,7 +3,9 @@ import cors from "cors";
 import db from "./db.js";
 
 const app = express();
-const PORT = 5000;
+
+const PORT = process.env.PORT || 5000;
+const HOST = "0.0.0.0";
 
 app.use(cors());
 app.use(express.json());
@@ -29,6 +31,7 @@ app.get("/api/test-db", async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Database connection failed.",
+      error: error.message,
     });
   }
 });
@@ -143,8 +146,8 @@ app.post("/api/orders", async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
+app.listen(PORT, HOST, () => {
   console.log(
-    `🚀 Server running on http://localhost:${PORT}`
+    `🚀 MitanshCakes backend running on http://${HOST}:${PORT}`
   );
 });

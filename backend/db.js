@@ -1,17 +1,17 @@
 import mysql from "mysql2/promise";
 
 const db = mysql.createPool({
-  host: "localhost",
-  user: "root",
-  password: "",
-  database: "mitansh_cakes",
-  port: 3306,
+  host: process.env.MYSQLHOST,
+  port: Number(process.env.MYSQLPORT || 3306),
+  user: process.env.MYSQLUSER,
+  password: process.env.MYSQLPASSWORD,
+  database: process.env.MYSQLDATABASE,
 
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,
 });
 
-console.log("✅ MySQL connection pool created successfully!");
+console.log("✅ Railway MySQL connection pool created!");
 
 export default db;

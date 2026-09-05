@@ -3,12 +3,28 @@ import cors from "cors";
 import db from "./db.js";
 
 const app = express();
-
 const PORT = process.env.PORT || 5000;
-const HOST = "0.0.0.0";
 
 app.use(cors());
 app.use(express.json());
+
+async function ensureOrdersTable() {
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS orders (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      customer_name VARCHAR(255) NOT NULL,
+      customer_phone VARCHAR(50) NOT NULL,
+      customer_email VARCHAR(255),
+      delivery_address TEXT NOT NULL,
+      items LONGTEXT NOT NULL,
+      total_amount DECIMAL(10,2) NOT NULL,
+      status VARCHAR(50) DEFAULT 'Pending',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  console.log("✅ Orders table is ready!");
+}
 
 app.get("/", (req, res) => {
   res.json({
@@ -52,12 +68,15 @@ app.get("/api/products", async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Failed to load products.",
+      error: error.message,
     });
   }
 });
 
 app.get("/api/orders", async (req, res) => {
   try {
+    await ensureOrdersTable();
+
     const [orders] = await db.query(
       "SELECT * FROM orders ORDER BY id DESC"
     );
@@ -72,6 +91,7 @@ app.get("/api/orders", async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Failed to load orders.",
+      error: error.message,
     });
   }
 });
@@ -101,6 +121,8 @@ app.post("/api/orders", async (req, res) => {
   }
 
   try {
+    await ensureOrdersTable();
+
     const itemsData =
       typeof items === "string"
         ? items
@@ -142,12 +164,28 @@ app.post("/api/orders", async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Failed to place order.",
+      error: error.message,
     });
   }
 });
 
-app.listen(PORT, HOST, () => {
-  console.log(
-    `🚀 MitanshCakes backend running on http://${HOST}:${PORT}`
-  );
-});
+async function startServer() {
+  try {
+    await ensureOrdersTable();
+
+    app.listen(PORT, () => {
+      console.log(
+        `🚀 Server running on port ${PORT}`
+      );
+    });
+  } catch (error) {
+    console.error(
+      "❌ Could not initialize database:",
+      error
+    );
+
+    process.exit(1);
+  }
+}
+
+startServer();

@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 
+const BACKEND_URL =
+  "https://reliable-light-production-157c.up.railway.app";
+
 function AdminOrders() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-
-  const BACKEND_URL =
-    "https://mitanshcakes14-production.up.railway.app";
 
   const fetchOrders = async () => {
     try {
@@ -18,21 +18,25 @@ function AdminOrders() {
       );
 
       if (!response.ok) {
-        throw new Error(`Backend returned ${response.status}`);
+        throw new Error(
+          `Server returned ${response.status}`
+        );
       }
 
       const data = await response.json();
 
       if (!data.success) {
-        throw new Error("Could not load orders");
+        throw new Error(
+          data.message || "Could not load orders"
+        );
       }
 
       setOrders(data.orders || []);
     } catch (error) {
-      console.error("Admin Orders error:", error);
+      console.error("Admin Orders Error:", error);
 
       setError(
-        "Could not load orders. Please make sure the backend is running."
+        "Could not load orders. Please try again."
       );
     } finally {
       setLoading(false);
@@ -47,15 +51,15 @@ function AdminOrders() {
     <div
       style={{
         minHeight: "100vh",
+        background: "#fff8f5",
         padding: "40px",
-        backgroundColor: "#fff7f2",
         fontFamily: "Arial, sans-serif",
       }}
     >
       <h1
         style={{
-          color: "#8b3a3a",
-          marginBottom: "10px",
+          color: "#963b3b",
+          marginBottom: "8px",
         }}
       >
         MitanshCakes Admin Orders
@@ -63,8 +67,9 @@ function AdminOrders() {
 
       <p
         style={{
-          color: "#666",
-          marginBottom: "25px",
+          fontSize: "18px",
+          color: "#555",
+          marginBottom: "30px",
         }}
       >
         View all customer orders
@@ -73,11 +78,12 @@ function AdminOrders() {
       <button
         onClick={fetchOrders}
         style={{
-          padding: "12px 20px",
-          backgroundColor: "#8b3a3a",
+          background: "#963b3b",
           color: "white",
           border: "none",
+          padding: "14px 25px",
           borderRadius: "8px",
+          fontSize: "16px",
           cursor: "pointer",
           marginBottom: "25px",
         }}
@@ -86,7 +92,12 @@ function AdminOrders() {
       </button>
 
       {loading && (
-        <p style={{ fontSize: "18px" }}>
+        <p
+          style={{
+            fontSize: "18px",
+            color: "#555",
+          }}
+        >
           Loading orders...
         </p>
       )}
@@ -95,6 +106,7 @@ function AdminOrders() {
         <p
           style={{
             color: "red",
+            fontSize: "18px",
             fontWeight: "bold",
           }}
         >
@@ -105,42 +117,48 @@ function AdminOrders() {
       {!loading && !error && orders.length === 0 && (
         <div
           style={{
-            backgroundColor: "white",
-            padding: "30px",
-            borderRadius: "12px",
+            background: "white",
+            padding: "25px",
+            borderRadius: "10px",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
           }}
         >
-          <h2>No orders yet</h2>
-          <p>Customer orders will appear here.</p>
+          <h2>No orders found</h2>
+          <p>
+            There are currently no orders in the database.
+          </p>
         </div>
       )}
 
-      {!loading && orders.length > 0 && (
+      {!loading && !error && orders.length > 0 && (
         <div
           style={{
-            backgroundColor: "white",
-            borderRadius: "12px",
-            padding: "20px",
             overflowX: "auto",
+            background: "white",
+            borderRadius: "10px",
+            boxShadow: "0 2px 10px rgba(0,0,0,0.08)",
           }}
         >
           <table
             style={{
               width: "100%",
               borderCollapse: "collapse",
+              minWidth: "1100px",
             }}
           >
             <thead>
               <tr
                 style={{
-                  backgroundColor: "#8b3a3a",
+                  background: "#963b3b",
                   color: "white",
                 }}
               >
                 <th style={tableCell}>Order ID</th>
                 <th style={tableCell}>Customer</th>
                 <th style={tableCell}>Phone</th>
+                <th style={tableCell}>Email</th>
                 <th style={tableCell}>Address</th>
+                <th style={tableCell}>Items</th>
                 <th style={tableCell}>Total</th>
                 <th style={tableCell}>Status</th>
                 <th style={tableCell}>Date</th>
@@ -151,23 +169,11 @@ function AdminOrders() {
               {orders.map((order) => (
                 <tr key={order.id}>
                   <td style={tableCell}>
-                    #{order.id}
+                    {order.id}
                   </td>
 
                   <td style={tableCell}>
                     {order.customer_name}
-
-                    {order.customer_email && (
-                      <div
-                        style={{
-                          fontSize: "12px",
-                          color: "#777",
-                          marginTop: "4px",
-                        }}
-                      >
-                        {order.customer_email}
-                      </div>
-                    )}
                   </td>
 
                   <td style={tableCell}>
@@ -175,35 +181,38 @@ function AdminOrders() {
                   </td>
 
                   <td style={tableCell}>
+                    {order.customer_email || "-"}
+                  </td>
+
+                  <td style={tableCell}>
                     {order.delivery_address}
                   </td>
 
                   <td style={tableCell}>
-                    ₹
-                    {Number(
-                      order.total_amount
-                    ).toLocaleString("en-IN")}
+                    <pre
+                      style={{
+                        whiteSpace: "pre-wrap",
+                        margin: 0,
+                        fontFamily: "Arial, sans-serif",
+                      }}
+                    >
+                      {formatItems(order.items)}
+                    </pre>
                   </td>
 
                   <td style={tableCell}>
-                    <span
-                      style={{
-                        padding: "6px 10px",
-                        borderRadius: "20px",
-                        backgroundColor: "#fff3cd",
-                        color: "#856404",
-                        fontWeight: "bold",
-                      }}
-                    >
-                      {order.status || "Pending"}
-                    </span>
+                    ₹{Number(order.total_amount || 0)}
+                  </td>
+
+                  <td style={tableCell}>
+                    {order.status || "Pending"}
                   </td>
 
                   <td style={tableCell}>
                     {order.created_at
                       ? new Date(
                           order.created_at
-                        ).toLocaleString("en-IN")
+                        ).toLocaleString()
                       : "-"}
                   </td>
                 </tr>
@@ -214,6 +223,37 @@ function AdminOrders() {
       )}
     </div>
   );
+}
+
+function formatItems(items) {
+  try {
+    const parsed =
+      typeof items === "string"
+        ? JSON.parse(items)
+        : items;
+
+    if (Array.isArray(parsed)) {
+      return parsed
+        .map((item) => {
+          const name =
+            item.name ||
+            item.product_name ||
+            "Product";
+
+          const quantity =
+            item.quantity ||
+            item.qty ||
+            1;
+
+          return `${name} × ${quantity}`;
+        })
+        .join("\n");
+    }
+
+    return JSON.stringify(parsed, null, 2);
+  } catch {
+    return String(items || "-");
+  }
 }
 
 const tableCell = {

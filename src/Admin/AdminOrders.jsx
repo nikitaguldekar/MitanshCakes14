@@ -5,12 +5,22 @@ function AdminOrders() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  const BACKEND_URL =
+    "https://mitanshcakes14-production.up.railway.app";
+
   const fetchOrders = async () => {
     try {
       setLoading(true);
       setError("");
 
-      const response = await fetch("http://localhost:5000/api/orders");
+      const response = await fetch(
+        `${BACKEND_URL}/api/orders`
+      );
+
+      if (!response.ok) {
+        throw new Error(`Backend returned ${response.status}`);
+      }
+
       const data = await response.json();
 
       if (!data.success) {
@@ -19,9 +29,10 @@ function AdminOrders() {
 
       setOrders(data.orders || []);
     } catch (error) {
-      console.error(error);
+      console.error("Admin Orders error:", error);
+
       setError(
-        "Could not load orders. Please make sure your backend is running."
+        "Could not load orders. Please make sure the backend is running."
       );
     } finally {
       setLoading(false);
@@ -50,7 +61,12 @@ function AdminOrders() {
         MitanshCakes Admin Orders
       </h1>
 
-      <p style={{ color: "#666", marginBottom: "25px" }}>
+      <p
+        style={{
+          color: "#666",
+          marginBottom: "25px",
+        }}
+      >
         View all customer orders
       </p>
 
@@ -140,6 +156,7 @@ function AdminOrders() {
 
                   <td style={tableCell}>
                     {order.customer_name}
+
                     {order.customer_email && (
                       <div
                         style={{
@@ -163,9 +180,9 @@ function AdminOrders() {
 
                   <td style={tableCell}>
                     ₹
-                    {Number(order.total_amount).toLocaleString(
-                      "en-IN"
-                    )}
+                    {Number(
+                      order.total_amount
+                    ).toLocaleString("en-IN")}
                   </td>
 
                   <td style={tableCell}>

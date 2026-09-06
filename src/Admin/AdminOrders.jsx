@@ -120,12 +120,15 @@ function AdminOrders() {
             background: "white",
             padding: "25px",
             borderRadius: "10px",
-            boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+            boxShadow:
+              "0 2px 8px rgba(0,0,0,0.08)",
           }}
         >
           <h2>No orders found</h2>
+
           <p>
-            There are currently no orders in the database.
+            There are currently no orders in the
+            database.
           </p>
         </div>
       )}
@@ -136,7 +139,8 @@ function AdminOrders() {
             overflowX: "auto",
             background: "white",
             borderRadius: "10px",
-            boxShadow: "0 2px 10px rgba(0,0,0,0.08)",
+            boxShadow:
+              "0 2px 10px rgba(0,0,0,0.08)",
           }}
         >
           <table
@@ -153,15 +157,41 @@ function AdminOrders() {
                   color: "white",
                 }}
               >
-                <th style={tableCell}>Order ID</th>
-                <th style={tableCell}>Customer</th>
-                <th style={tableCell}>Phone</th>
-                <th style={tableCell}>Email</th>
-                <th style={tableCell}>Address</th>
-                <th style={tableCell}>Items</th>
-                <th style={tableCell}>Total</th>
-                <th style={tableCell}>Status</th>
-                <th style={tableCell}>Date</th>
+                <th style={tableCell}>
+                  Order ID
+                </th>
+
+                <th style={tableCell}>
+                  Customer
+                </th>
+
+                <th style={tableCell}>
+                  Phone
+                </th>
+
+                <th style={tableCell}>
+                  Email
+                </th>
+
+                <th style={tableCell}>
+                  Address
+                </th>
+
+                <th style={tableCell}>
+                  Items
+                </th>
+
+                <th style={tableCell}>
+                  Total
+                </th>
+
+                <th style={tableCell}>
+                  Status
+                </th>
+
+                <th style={tableCell}>
+                  Date
+                </th>
               </tr>
             </thead>
 
@@ -189,19 +219,22 @@ function AdminOrders() {
                   </td>
 
                   <td style={tableCell}>
-                    <pre
+                    <div
                       style={{
-                        whiteSpace: "pre-wrap",
-                        margin: 0,
-                        fontFamily: "Arial, sans-serif",
+                        whiteSpace: "pre-line",
+                        lineHeight: "1.6",
+                        fontSize: "15px",
                       }}
                     >
                       {formatItems(order.items)}
-                    </pre>
+                    </div>
                   </td>
 
                   <td style={tableCell}>
-                    ₹{Number(order.total_amount || 0)}
+                    ₹
+                    {Number(
+                      order.total_amount || 0
+                    )}
                   </td>
 
                   <td style={tableCell}>
@@ -232,27 +265,34 @@ function formatItems(items) {
         ? JSON.parse(items)
         : items;
 
-    if (Array.isArray(parsed)) {
-      return parsed
-        .map((item) => {
-          const name =
-            item.name ||
-            item.product_name ||
-            "Product";
+    const products = parsed?.products || [];
 
-          const quantity =
-            item.quantity ||
-            item.qty ||
-            1;
-
-          return `${name} × ${quantity}`;
-        })
-        .join("\n");
+    if (products.length === 0) {
+      return "-";
     }
 
-    return JSON.stringify(parsed, null, 2);
-  } catch {
-    return String(items || "-");
+    return products
+      .map((item) => {
+        const name =
+          item.name ||
+          item.product_name ||
+          "Product";
+
+        const quantity =
+          item.quantity ||
+          item.qty ||
+          1;
+
+        return `${name} × ${quantity}`;
+      })
+      .join("\n");
+  } catch (error) {
+    console.error(
+      "Items formatting error:",
+      error
+    );
+
+    return "-";
   }
 }
 

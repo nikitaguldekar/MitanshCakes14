@@ -26,6 +26,10 @@ async function ensureOrdersTable() {
   console.log("✅ Orders table is ready!");
 }
 
+/* =========================
+   HOME
+========================= */
+
 app.get("/", (req, res) => {
   res.json({
     success: true,
@@ -33,16 +37,25 @@ app.get("/", (req, res) => {
   });
 });
 
+/* =========================
+   DATABASE TEST
+========================= */
+
 app.get("/api/test-db", async (req, res) => {
   try {
-    const [rows] = await db.query("SELECT 1 AS connected");
+    const [rows] = await db.query(
+      "SELECT 1 AS connected"
+    );
 
     res.json({
       success: true,
       database: rows[0].connected === 1,
     });
   } catch (error) {
-    console.error("Database test error:", error);
+    console.error(
+      "Database test error:",
+      error
+    );
 
     res.status(500).json({
       success: false,
@@ -51,6 +64,10 @@ app.get("/api/test-db", async (req, res) => {
     });
   }
 });
+
+/* =========================
+   PRODUCTS
+========================= */
 
 app.get("/api/products", async (req, res) => {
   try {
@@ -63,7 +80,10 @@ app.get("/api/products", async (req, res) => {
       products,
     });
   } catch (error) {
-    console.error("Products error:", error);
+    console.error(
+      "Products error:",
+      error
+    );
 
     res.status(500).json({
       success: false,
@@ -72,6 +92,11 @@ app.get("/api/products", async (req, res) => {
     });
   }
 });
+
+/* =========================
+   ALL ORDERS
+   ADMIN USES THIS
+========================= */
 
 app.get("/api/orders", async (req, res) => {
   try {
@@ -86,7 +111,10 @@ app.get("/api/orders", async (req, res) => {
       orders,
     });
   } catch (error) {
-    console.error("Orders error:", error);
+    console.error(
+      "Orders error:",
+      error
+    );
 
     res.status(500).json({
       success: false,
@@ -95,6 +123,62 @@ app.get("/api/orders", async (req, res) => {
     });
   }
 });
+
+/* =========================
+   CUSTOMER MY ORDERS
+   SEARCH BY PHONE
+========================= */
+
+app.get(
+  "/api/orders/customer",
+  async (req, res) => {
+    try {
+      await ensureOrdersTable();
+
+      const phone = String(
+        req.query.phone || ""
+      ).trim();
+
+      if (!phone) {
+        return res.status(400).json({
+          success: false,
+          message: "Phone number is required.",
+        });
+      }
+
+      const [orders] = await db.query(
+        `
+        SELECT *
+        FROM orders
+        WHERE customer_phone = ?
+        ORDER BY id DESC
+        `,
+        [phone]
+      );
+
+      res.json({
+        success: true,
+        orders,
+      });
+    } catch (error) {
+      console.error(
+        "Customer orders error:",
+        error
+      );
+
+      res.status(500).json({
+        success: false,
+        message:
+          "Failed to load customer orders.",
+        error: error.message,
+      });
+    }
+  }
+);
+
+/* =========================
+   PLACE NEW ORDER
+========================= */
 
 app.post("/api/orders", async (req, res) => {
   const {
@@ -116,7 +200,8 @@ app.post("/api/orders", async (req, res) => {
   ) {
     return res.status(400).json({
       success: false,
-      message: "Missing required order details.",
+      message:
+        "Missing required order details.",
     });
   }
 
@@ -127,6 +212,15 @@ app.post("/api/orders", async (req, res) => {
       typeof items === "string"
         ? items
         : JSON.stringify(items);
+
+    const amount = Number(total_amount);
+
+    if (!Number.isFinite(amount)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid order amount.",
+      });
+    }
 
     const [result] = await db.query(
       `
@@ -148,34 +242,47 @@ app.post("/api/orders", async (req, res) => {
         customer_email || null,
         delivery_address,
         itemsData,
-        Number(total_amount),
+        amount,
         status || "Pending",
       ]
     );
 
+    console.log(
+      `🍰 NEW ORDER CREATED: #${result.insertId}`
+    );
+
     res.json({
       success: true,
-      message: "Order placed successfully! 🎉",
+      message:
+        "Order placed successfully! 🎉",
       orderId: result.insertId,
     });
   } catch (error) {
-    console.error("Order insert error:", error);
+    console.error(
+      "Order insert error:",
+      error
+    );
 
     res.status(500).json({
       success: false,
-      message: "Failed to place order.",
+      message:
+        "Failed to place order.",
       error: error.message,
     });
   }
 });
 
+/* =========================
+   START SERVER
+========================= */
+
 async function startServer() {
   try {
     await ensureOrdersTable();
 
-    app.listen(PORT, () => {
+    app.listen(PORT, "0.0.0.0", () => {
       console.log(
-        `🚀 Server running on port ${PORT}`
+        `🚀 MitanshCakes server running on port ${PORT}`
       );
     });
   } catch (error) {

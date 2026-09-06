@@ -704,152 +704,49 @@ function App() {
   };
 
   const placeOrder = async () => {
-    if (!customerDetails.name.trim()) {
-      setOrderError("Please enter your full name.");
-      setPage("checkout");
-      return;
-    }
-
-    if (!customerDetails.phone.trim()) {
-      setOrderError("Please enter your mobile number.");
-      setPage("checkout");
-      return;
-    }
-
-    if (!customerDetails.address.trim()) {
-      setOrderError("Please enter your delivery address.");
-      setPage("checkout");
-      return;
-    }
-
-    if (cart.length === 0) {
-      setOrderError("Your cart is empty.");
-      setPage("cart");
-      return;
-    }
+    if (!customerDetails.name.trim()) { setOrderError("Please enter your full name."); setPage("checkout"); return; }
+    if (!customerDetails.phone.trim()) { setOrderError("Please enter your mobile number."); setPage("checkout"); return; }
+    if (!customerDetails.address.trim()) { setOrderError("Please enter your delivery address."); setPage("checkout"); return; }
+    if (cart.length === 0) { setOrderError("Your cart is empty."); setPage("cart"); return; }
+    if (!paymentMethod) { setOrderError("Please select a payment method."); setPage("checkout"); return; }
 
     setOrderSubmitting(true);
     setOrderError("");
-
     const totalAtOrderTime = cartTotal;
-
-    const orderItems = cart.map((item) => ({
-      name: item.name,
-      category: item.category,
-      size: item.size,
-      price: item.price,
-      quantity: item.quantity,
-    }));
-
-    const localOrder = {
-      id: `local-${Date.now()}`,
+    const orderItems = cart.map((item) => ({ name: item.name, category: item.category, size: item.size, price: item.price, quantity: item.quantity }));
+    const orderPayload = {
       customer_name: customerDetails.name.trim(),
       customer_phone: customerDetails.phone.trim(),
       customer_email: customerDetails.email.trim() || null,
       delivery_address: customerDetails.address.trim(),
-      items: {
-        products: orderItems,
-        payment_method: paymentMethod,
-        notes: customerDetails.notes.trim(),
-      },
+      items: { products: orderItems, payment_method: paymentMethod, notes: customerDetails.notes.trim() },
       total_amount: totalAtOrderTime,
       status: paymentMethod === "cod" ? "Pending" : "Paid",
-      created_at: new Date().toISOString(),
     };
 
     try {
-      /*
-       * Save a local copy first.
-       * This guarantees that the customer sees the order in
-       * My Orders even if the backend temporarily fails.
-       */
-      const existingLocalOrders = JSON.parse(
-        localStorage.getItem("mitansh_orders") || "[]"
-      );
-
-      localStorage.setItem(
-        "mitansh_orders",
-        JSON.stringify([localOrder, ...existingLocalOrders])
-      );
-
-      let finalOrderId = localOrder.id;
-
-      try {
-        const response = await fetch(
-          "https://reliable-light-production-157c.up.railway.app/api/orders",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              customer_name: customerDetails.name.trim(),
-              customer_phone: customerDetails.phone.trim(),
-              customer_email:
-                customerDetails.email.trim() || null,
-              delivery_address: customerDetails.address.trim(),
-              items: {
-                products: orderItems,
-                payment_method: paymentMethod,
-                notes: customerDetails.notes.trim(),
-              },
-              total_amount: totalAtOrderTime,
-              status:
-                paymentMethod === "cod"
-                  ? "Pending"
-                  : "Paid",
-            }),
-          }
-        );
-
-        const data = await response.json();
-
-        if (response.ok && data.success) {
-          finalOrderId = data.orderId;
-
-          /*
-           * Replace the temporary local order with the real
-           * MySQL order ID so My Orders does not show duplicates.
-           */
-          const updatedLocalOrders = JSON.parse(
-            localStorage.getItem("mitansh_orders") || "[]"
-          ).map((order) =>
-            order.id === localOrder.id
-              ? {
-                  ...order,
-                  id: data.orderId,
-                }
-              : order
-          );
-
-          localStorage.setItem(
-            "mitansh_orders",
-            JSON.stringify(updatedLocalOrders)
-          );
-        }
-      } catch (backendError) {
-        console.warn(
-          "Backend unavailable. Keeping local order:",
-          backendError
-        );
+      const response = await fetch("https://reliable-light-production-157c.up.railway.app/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(orderPayload),
+      });
+      let data = {};
+      try { data = await response.json(); } catch { data = {}; }
+      if (!response.ok || !data.success || !data.orderId) {
+        throw new Error(data.message || `Order could not be placed. Server status: ${response.status}`);
       }
 
-      /*
-       * Payment/order is now completed:
-       * - show confirmation
-       * - empty cart
-       * - store order ID
-       */
+      const savedOrder = { id: data.orderId, ...orderPayload, created_at: new Date().toISOString() };
+      const existingLocalOrders = JSON.parse(localStorage.getItem("mitansh_orders") || "[]");
+      localStorage.setItem("mitansh_orders", JSON.stringify([savedOrder, ...existingLocalOrders]));
       setOrderTotal(totalAtOrderTime);
-      setOrderId(finalOrderId);
+      setOrderId(data.orderId);
       setCart([]);
       setPage("order-success");
     } catch (error) {
       console.error("❌ Order submission error:", error);
-      setOrderError(
-        error.message ||
-          "Unable to place the order. Please try again."
-      );
+      setOrderError(error.message || "Unable to place the order. Please check your connection and try again.");
+      setPage("checkout");
     } finally {
       setOrderSubmitting(false);
     }
